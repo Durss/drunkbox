@@ -165,15 +165,15 @@ void loop() {
       waitForGoingDown = false;
     
     //Throw bills for 0.5 second
-    }else if(perten >= 1 && !waitForGoingDown) {
-      //analogWrite(motorPin, 200);
+    }else if(perten >= 10 && !waitForGoingDown) {
+      analogWrite(motorPin, 200);
       
       unsigned int delayStart = millis();
       bool stopped = false;
       
       //Pick a random message
       String message = "";
-      int rand = floor(random(0,11));
+      int rand = floor(random(0,12));
       if(rand == 0) message = "EPIIIIIC";
       if(rand == 1) message = "BRAVOOOO";
       if(rand == 2) message = "T'ES KEN M'SIEUR";
@@ -185,7 +185,8 @@ void loop() {
       if(rand == 8) message = "MEC...";
       if(rand == 9) message = "GRAND DIEU...";
       if(rand == 10) message = "ARRETE DE BOIRE";
-      message = "  "+message+"  ";
+      if(rand == 11) message = "VIEILLE POCHE";
+      message = "       "+message+"  ";
       
       matrix.setTextSize(1);
       matrix.setTextWrap(false);  // we dont want text to wrap so it scrolls nicely
