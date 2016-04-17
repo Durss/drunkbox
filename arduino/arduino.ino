@@ -22,7 +22,7 @@ unsigned int startTime = 0;
 unsigned int loaderFrame = 0;
 unsigned int arrowFrame = 0;
 unsigned int textScrollIndex = 0;
-unsigned long rotateDuration = 250;//Motor rotation duration
+unsigned long rotateDuration = 500;//Motor rotation duration
 
 const int motorPin = 3;
 const int buttonPin = 4;
@@ -55,7 +55,11 @@ static const uint8_t PROGMEM
   arrow_bmp13[] = { 0x5a,0x52,0x52,0x5a,0x00,0x18,0x18,0x18 },
   arrow_bmp14[] = { 0x00,0x5a,0x52,0x52,0x5a,0x00,0x18,0x18 },
   arrow_bmp15[] = { 0x00,0x00,0x5a,0x52,0x52,0x5a,0x00,0x18 },
-  arrow_bmp16[] = { 0x00,0x00,0x5a,0x52,0x52,0x5a,0x00,0x00 };
+  arrow_bmp16[] = { 0x00,0x00,0x5a,0x52,0x52,0x5a,0x00,0x00 },
+  
+  win_bmp1[] = { 0x76,0xb5,0xd3,0x07,0xe0,0xcb,0xad,0x6e },
+  win_bmp2[] = { 0xdd,0x6b,0xa6,0xc1,0x83,0x65,0xd6,0xbb },
+  win_bmp3[] = { 0xbb,0xd6,0x65,0x83,0xc1,0xa6,0x6b,0xdd };
 
 void setup() {
   matrix.begin(0x70);  // pass in the address
@@ -78,6 +82,7 @@ void loop() {
   if(digitalRead(buttonPin) == 0) {
       analogWrite(motorPin, 200);
       wasButtonPressed = true;
+      return;
   }else if( wasButtonPressed ) {
       analogWrite(motorPin, 0);
   }
@@ -166,52 +171,65 @@ void loop() {
     
     //Throw bills for 0.5 second
     }else if(perten >= 10 && !waitForGoingDown) {
-      analogWrite(motorPin, 200);
-      
-      unsigned int delayStart = millis();
-      bool stopped = false;
-      
       //Pick a random message
       String message = "";
       int rand = floor(random(0,12));
-      if(rand == 0) message = "EPIIIIIC";
-      if(rand == 1) message = "BRAVOOOO";
+      if(rand == 0) message = "EPIIIIIC !";
+      if(rand == 1) message = "BRAVOOOO !!!";
       if(rand == 2) message = "T'ES KEN M'SIEUR";
-      if(rand == 3) message = "VA VOMIR";
+      if(rand == 3) message = "VA VITE TE FAIRE VOMIR";
       if(rand == 4) message = "EPIC WIN";
-      if(rand == 5) message = "T'ES MORT";
+      if(rand == 5) message = "T'ES PAS EN BON ETAT A PRIORI";
       if(rand == 6) message = "RENTRE CHEZ TOI";
       if(rand == 7) message = "ARRETE DE BOIRE";
-      if(rand == 8) message = "MEC...";
+      if(rand == 8) message = "APPELEZ VITE LE 18 !";
       if(rand == 9) message = "GRAND DIEU...";
       if(rand == 10) message = "ARRETE DE BOIRE";
       if(rand == 11) message = "VIEILLE POCHE";
-      message = "       "+message+"  ";
+      message = "  "+message+"  ";
       
+      matrix.clear();
+      matrix.writeDisplay();
       matrix.setTextSize(1);
-      matrix.setTextWrap(false);  // we dont want text to wrap so it scrolls nicely
+      matrix.setTextWrap(false);
       matrix.setTextColor(LED_ON);
+      
+      analogWrite(motorPin, 200);
+      delay(250);
+      analogWrite(motorPin, 0);
+      
+      //Star animation
+      for(int l = 0; l < 15; l++) {
+        matrix.clear();
+        matrix.drawBitmap(0, 0, win_bmp1, 8, 8, LED_ON);
+        matrix.writeDisplay();
+        delay(50);
+        matrix.clear();
+        matrix.drawBitmap(0, 0, win_bmp2, 8, 8, LED_ON);
+        matrix.writeDisplay();
+        delay(50);
+        matrix.clear();
+        matrix.drawBitmap(0, 0, win_bmp3, 8, 8, LED_ON);
+        matrix.writeDisplay();
+        delay(50);
+      }
       
       int frameDelay = 5;
       int len = (message.length() * 6 * frameDelay);
+      
+      //Display message
       for (int x=0; x>=-len; x--) {
         //Scroll message
         matrix.clear();
         matrix.setCursor(round(x/frameDelay),0);
         matrix.print( message );
         matrix.writeDisplay();
-        
-        //Stop the motor during the animation
-        if((millis() - delayStart) > rotateDuration && stopped == false) {
-          analogWrite(motorPin, 0);
-          stopped = true;
-        }
         delay(5);
-        
-        //Reset "blow here" animation
-        arrowFrame = 0;  
-        textScrollIndex = 0;
       }
+        
+      //Reset "blow here" animation
+      arrowFrame = 0;  
+      textScrollIndex = 0;
       
       waitForGoingDown = true;//Tells that the gas sensor must go down before starting the motor again
     }
