@@ -59,7 +59,18 @@ static const uint8_t PROGMEM
   
   win_bmp1[] = { 0x76,0xb5,0xd3,0x07,0xe0,0xcb,0xad,0x6e },
   win_bmp2[] = { 0xdd,0x6b,0xa6,0xc1,0x83,0x65,0xd6,0xbb },
-  win_bmp3[] = { 0xbb,0xd6,0x65,0x83,0xc1,0xa6,0x6b,0xdd };
+  win_bmp3[] = { 0xbb,0xd6,0x65,0x83,0xc1,0xa6,0x6b,0xdd },
+
+  counter_bmp1[] = { 0x18,0x24,0x24,0x24,0x24,0x24,0x24,0x18 },
+  counter_bmp2[] = { 0x08,0x38,0x08,0x08,0x08,0x08,0x08,0x3c },
+  counter_bmp3[] = { 0x18,0x24,0x24,0x04,0x18,0x20,0xff,0xc3 },
+  counter_bmp4[] = { 0x3c,0x04,0x0c,0x18,0x04,0xfb,0xdb,0xe7 },
+  counter_bmp5[] = { 0x20,0x20,0x28,0x28,0x3c,0xf7,0xf7,0xff },
+  counter_bmp6[] = { 0x3c,0x20,0x20,0x3c,0xfb,0xfb,0xdb,0xe7 },
+  counter_bmp7[] = { 0x1c,0x20,0x20,0x38,0xc3,0xdb,0xdb,0xe7 },
+  counter_bmp8[] = { 0x3c,0x04,0x04,0xf7,0xf7,0xef,0xdf,0xdf },
+  counter_bmp9[] = { 0x18,0x24,0xdb,0xdb,0xe7,0xdb,0xdb,0xe7 },
+  counter_bmp10[] = { 0x3c,0xc3,0xdb,0xdb,0xc3,0xfb,0xfb,0xc7 };
 
 void setup() {
   matrix.begin(0x70);  // pass in the address
@@ -158,12 +169,26 @@ void loop() {
       }
       textScrollIndex ++;
     }else{
+      //*
+      if(perten == 0) matrix.drawBitmap(0, 0, counter_bmp1, 8, 8, LED_ON);
+      if(perten == 1) matrix.drawBitmap(0, 0, counter_bmp2, 8, 8, LED_ON);
+      if(perten == 2) matrix.drawBitmap(0, 0, counter_bmp3, 8, 8, LED_ON);
+      if(perten == 3) matrix.drawBitmap(0, 0, counter_bmp4, 8, 8, LED_ON);
+      if(perten == 4) matrix.drawBitmap(0, 0, counter_bmp5, 8, 8, LED_ON);
+      if(perten == 5) matrix.drawBitmap(0, 0, counter_bmp6, 8, 8, LED_ON);
+      if(perten == 6) matrix.drawBitmap(0, 0, counter_bmp7, 8, 8, LED_ON);
+      if(perten == 7) matrix.drawBitmap(0, 0, counter_bmp8, 8, 8, LED_ON);
+      if(perten == 8) matrix.drawBitmap(0, 0, counter_bmp9, 8, 8, LED_ON);
+      if(perten == 9) matrix.drawBitmap(0, 0, counter_bmp10, 8, 8, LED_ON);
+      //*/
+      /*
       matrix.setCursor(3,0);
       matrix.print( String(perten) );
       for(int i=0; i<max(1,floor(percent*8)); i++) {
         matrix.drawPixel(0, 7-i, LED_ON);  
         matrix.drawPixel(1, 7-i, LED_ON);  
       }
+      //*/
     }
     
     if(perten < 7) {
@@ -195,7 +220,7 @@ void loop() {
       matrix.setTextColor(LED_ON);
       
       analogWrite(motorPin, 200);
-      delay(250);
+      delay(rotateDuration);
       analogWrite(motorPin, 0);
       
       //Star animation
