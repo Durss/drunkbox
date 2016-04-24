@@ -6,15 +6,45 @@
 */
 #include <Arduino.h>
 #ifdef __AVR__
-  #include <avr/power.h>
+#include <avr/power.h>
 #endif
 #include <Wire.h>
 #include "Adafruit_LEDBackpack.h"
 #include "Adafruit_GFX.h"
 
-Adafruit_8x8matrix matrix = Adafruit_8x8matrix();
 
-unsigned long minCheckDuration = 3000;
+//==============================================
+//============CUSTOMIZABLE VARIABLES============
+//==============================================
+  const unsigned long rotateDuration = 500;//Motor rotation duration when drunk enough
+  const int motorPin = 3;//Pin that controls the motor
+  const int buttonPin = 4;//Pin where the button to manually send bills is plugged
+  const int sensorPin = A0;//Pin where the gas sensor is plugged
+  
+  //The gas sensor should normally heat ~15min before being used.
+  //But sometimes we want to power off/on the box without having to wait
+  //15min again as the sensor is already hot.
+  //If you want to force these 15min of heating, just set the following
+  //value to 900000 (milliseconds).
+  const unsigned long minCheckDuration = 3000;//900000;
+  //Message displayed to tell the user to blow.
+  //The full message says "Blow here =>" but the "here =>" part is
+  //actually an animation.i made the frames with this tool of mine :
+  //https://dl.dropboxusercontent.com/u/20758492/arduino/thermalPrinterCharsGen/index.html
+  //But frames are basically binary data that say which pixel set on.
+  //I set white spaces before the "Blow"to simulate a delay between
+  //two animations.
+  const String msg_blowHere = "                       SOUFFLE  ";
+//=====================================================
+//============END OF CUSTOMIZABLE VARIABLES============
+//=====================================================
+
+
+
+//=========================================================
+//============SOME VARS YOU DON'T WANT TO TOUCH============
+//=========================================================
+Adafruit_8x8matrix matrix = Adafruit_8x8matrix();
 bool waitForGoingDown = false;
 bool wasButtonPressed = false;
 unsigned int minValue = 1024;
@@ -22,13 +52,14 @@ unsigned int startTime = 0;
 unsigned int loaderFrame = 0;
 unsigned int arrowFrame = 0;
 unsigned int textScrollIndex = 0;
-unsigned long rotateDuration = 500;//Motor rotation duration
 
-const int motorPin = 3;
-const int buttonPin = 4;
-const int sensorPin = A0;
 
+
+//===============================================
+//============GRAPHICS FOR LED MATRIX============
+//===============================================
 static const uint8_t PROGMEM
+  //Loading frames
   wait_bmp1[] = { 0x3c,0x1e,0x07,0x03,0x03,0x00,0x00,0x00 },
   wait_bmp2[] = { 0x0c,0x02,0x01,0x03,0x03,0x03,0x06,0x00 },
   wait_bmp3[] = { 0x0c,0x02,0x01,0x01,0x03,0x07,0x0e,0x0c },
@@ -40,6 +71,7 @@ static const uint8_t PROGMEM
   wait_bmp9[] = { 0x3c,0x7e,0xc6,0x80,0x00,0x00,0x00,0x00 },
   wait_bmp10[] = { 0x3c,0x5e,0x87,0x00,0x00,0x00,0x00,0x00 },
   
+  //"here =>" frames of the "Blow here =>" message
   arrow_bmp1[] = { 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 },
   arrow_bmp2[] = { 0x18,0x00,0x00,0x00,0x00,0x00,0x00,0x00 },
   arrow_bmp3[] = { 0x3c,0x18,0x00,0x00,0x00,0x00,0x00,0x00 },
@@ -57,10 +89,12 @@ static const uint8_t PROGMEM
   arrow_bmp15[] = { 0x00,0x00,0x5a,0x52,0x52,0x5a,0x00,0x18 },
   arrow_bmp16[] = { 0x00,0x00,0x5a,0x52,0x52,0x5a,0x00,0x00 },
   
+  //Win animation (sort of rotating rays)
   win_bmp1[] = { 0x76,0xb5,0xd3,0x07,0xe0,0xcb,0xad,0x6e },
   win_bmp2[] = { 0xdd,0x6b,0xa6,0xc1,0x83,0x65,0xd6,0xbb },
   win_bmp3[] = { 0xbb,0xd6,0x65,0x83,0xc1,0xa6,0x6b,0xdd },
-
+  
+  //0 to 9 animation
   counter_bmp1[] = { 0x18,0x24,0x24,0x24,0x24,0x24,0x24,0x18 },
   counter_bmp2[] = { 0x08,0x38,0x08,0x08,0x08,0x08,0x08,0x3c },
   counter_bmp3[] = { 0x18,0x24,0x24,0x04,0x18,0x20,0xff,0xc3 },
@@ -73,7 +107,7 @@ static const uint8_t PROGMEM
   counter_bmp10[] = { 0x3c,0xc3,0xdb,0xdb,0xc3,0xfb,0xfb,0xc7 };
 
 void setup() {
-  matrix.begin(0x70);  // pass in the address
+  matrix.begin(0x70);
   matrix.clear();
   
   Serial.begin(9600);
@@ -90,19 +124,21 @@ void loop() {
   //Serial.println(sensorReading);
   unsigned long diff = millis() - startTime;
   
+  //Is button pressed ?
   if(digitalRead(buttonPin) == 0) {
-      analogWrite(motorPin, 200);
-      wasButtonPressed = true;
-      return;
+    //Throw bills until it's released
+    analogWrite(motorPin, 200);
+    wasButtonPressed = true;
+    return;
   }else if( wasButtonPressed ) {
-      analogWrite(motorPin, 0);
+    analogWrite(motorPin, 0);
   }
   
   matrix.clear();
   
   int j;
+  //Show "loading" animation
   if(diff < minCheckDuration) {
-    //Show "loading" animation
     matrix.setRotation(3);
     loaderFrame = (loaderFrame + 1)%10;
     
@@ -134,16 +170,19 @@ void loop() {
     //Spiral(leds);
     
     int perten = round(percent*10);
+    
+    //Sensor to 0, just display the "Blow here =>" animation
     if(percent < 0.04) {
       if(textScrollIndex < 180) {
+        //"Blow" message
         matrix.setTextSize(1);
         matrix.setTextWrap(false);
         matrix.setTextColor(LED_ON);
         matrix.setCursor(-textScrollIndex,0);
-        matrix.print( "                       SOUFFLE  " );
+        matrix.print( msg_blowHere );
         
       }else{
-        
+        //"here =>" message
         if(arrowFrame == 0) matrix.drawBitmap(0, 0, arrow_bmp1, 8, 8, LED_ON);
         if(arrowFrame == 1) matrix.drawBitmap(0, 0, arrow_bmp2, 8, 8, LED_ON);
         if(arrowFrame == 2) matrix.drawBitmap(0, 0, arrow_bmp3, 8, 8, LED_ON);
@@ -168,6 +207,8 @@ void loop() {
         }
       }
       textScrollIndex ++;
+    
+    //User is blowing, display progression
     }else{
       //*
       if(perten == 0) matrix.drawBitmap(0, 0, counter_bmp1, 8, 8, LED_ON);
@@ -194,9 +235,38 @@ void loop() {
     if(perten < 7) {
       waitForGoingDown = false;
     
-    //Throw bills for 0.5 second
+    
+    //User is drunk, throw bills at him
     }else if(perten >= 10 && !waitForGoingDown) {
-      //Pick a random message
+      
+      matrix.clear();
+      matrix.writeDisplay();
+      matrix.setTextSize(1);
+      matrix.setTextWrap(false);
+      matrix.setTextColor(LED_ON);
+      
+      analogWrite(motorPin, 200);
+      delay(rotateDuration);
+      analogWrite(motorPin, 0);
+      
+      //Rotating rays animation
+      for(int l = 0; l < 15; l++) {
+        matrix.clear();
+        matrix.drawBitmap(0, 0, win_bmp1, 8, 8, LED_ON);
+        matrix.writeDisplay();
+        delay(50);
+        matrix.clear();
+        matrix.drawBitmap(0, 0, win_bmp2, 8, 8, LED_ON);
+        matrix.writeDisplay();
+        delay(50);
+        matrix.clear();
+        matrix.drawBitmap(0, 0, win_bmp3, 8, 8, LED_ON);
+        matrix.writeDisplay();
+        delay(50);
+      }
+      
+      
+      //Pick a random message to display
       String message = "";
       int rand = floor(random(0,12));
       if(rand == 0) message = "EPIIIIIC !";
@@ -212,32 +282,6 @@ void loop() {
       if(rand == 10) message = "ARRETE DE BOIRE";
       if(rand == 11) message = "VIEILLE POCHE";
       message = "  "+message+"  ";
-      
-      matrix.clear();
-      matrix.writeDisplay();
-      matrix.setTextSize(1);
-      matrix.setTextWrap(false);
-      matrix.setTextColor(LED_ON);
-      
-      analogWrite(motorPin, 200);
-      delay(rotateDuration);
-      analogWrite(motorPin, 0);
-      
-      //Star animation
-      for(int l = 0; l < 15; l++) {
-        matrix.clear();
-        matrix.drawBitmap(0, 0, win_bmp1, 8, 8, LED_ON);
-        matrix.writeDisplay();
-        delay(50);
-        matrix.clear();
-        matrix.drawBitmap(0, 0, win_bmp2, 8, 8, LED_ON);
-        matrix.writeDisplay();
-        delay(50);
-        matrix.clear();
-        matrix.drawBitmap(0, 0, win_bmp3, 8, 8, LED_ON);
-        matrix.writeDisplay();
-        delay(50);
-      }
       
       int frameDelay = 5;
       int len = (message.length() * 6 * frameDelay);
