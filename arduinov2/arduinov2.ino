@@ -135,7 +135,7 @@ void loop() {
   //Serial.print(potValue);
   //Serial.print(" - ");
   //Serial.println(sensorReading);
-  int maxV = 980 - (1024/potSteps - potValue);
+  int maxV = 1010 - (1024/potSteps - potValue);
   
   //Is button pressed ?
   if(digitalRead(buttonPin) == 0) {
@@ -210,8 +210,9 @@ void loop() {
     float value = pow(sensorReading-minValue,2);
     float maxValue = pow(maxV-minValue,2);
     float percent = value/maxValue;
-    //int leds = map(round(percent*100), 0,100,0,8*8);
-    /*for(int i=0; i<leds; i++) {
+    Serial.println(percent);
+    /*int leds = map(round(percent*100), 0,100,0,8*8);
+    for(int i=0; i<leds; i++) {
       matrix.drawPixel(floor(i/8), 7 - i%8, LED_ON);  
     }*/
     //Spiral(leds);
